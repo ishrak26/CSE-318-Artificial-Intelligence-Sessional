@@ -65,6 +65,10 @@ class State {
         return abs(target_row - pos[num].first) + abs(target_col - pos[num].second);
     }
 
+    bool operator<(const State &other) const {
+        return get_Manhattan_distance() < other.get_Manhattan_distance();
+    }
+
 public:
     State() {
 
