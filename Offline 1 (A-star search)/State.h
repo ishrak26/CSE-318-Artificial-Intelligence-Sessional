@@ -34,7 +34,7 @@ class State {
     State get_downstate() const {
         auto [row, col] = get_blank_pos();
         assert(row < n);
-        State downstate = *this;
+        State downstate(n, board);
         swap(downstate.board[row+1][col], downstate.board[row][col]);
         swap(downstate.pos[downstate.board[row][col]], downstate.pos[0]);
         return downstate;
@@ -57,16 +57,12 @@ class State {
         swap(rightstate.pos[rightstate.board[row][col]], rightstate.pos[0]);
         return rightstate;
     }
- 
+
     int calc_Manhattan_dist(int num) const {
         assert(num > 0 && num < n*n);
         int target_row = 1 + ((num-1) / n);
         int target_col = 1 + ((num-1) % n);
         return abs(target_row - pos[num].first) + abs(target_col - pos[num].second);
-    }
-
-    bool operator<(const State &other) const {
-        return get_Manhattan_distance() < other.get_Manhattan_distance();
     }
 
 public:
@@ -82,7 +78,7 @@ public:
         init_board(n);
     }
 
-    void init(int n, vector<vector<int>> &b) {
+    State(int n, const vector<vector<int>> &b) {
         init_board(n);
         board = b;
         init_pos();
@@ -100,27 +96,50 @@ public:
     void write() const {
         for (int i = 1; i <= n; i++) {
             for (int j = 1; j <= n; j++) {
-                cout << board[i][j];
+                cout << board[i][j] << " ";
             }
+            cout << '\n';
         }
+        cout << '\n';
     }
 
     pair<int, int> get_blank_pos() const {
         return get_position(0);
     }
 
-    bool get_next_board_in_dir(char dir, State &board) const {
+    bool get_next_state_in_dir(char dir, State &state) const {
         auto [row, col] = get_blank_pos();
         if (dir == 'U') {
             if (row > 1) {
-                board = get_upstate();
+                state = get_upstate();
             }
             else {
                 return false;
             }
         }
         else if (dir == 'D') {
-            ;
+            if (row < n) {
+                state = get_downstate();
+            }
+            else {
+                return false;
+            }
+        }
+        else if (dir == 'L') {
+            if (col > 1) {
+                state = get_leftstate();
+            }
+            else {
+                return false;
+            }
+        }
+        else if (dir == 'R') {
+            if (col < n) {
+                state = get_rightstate();
+            }
+            else {
+                return false;
+            }
         }
         return true;
     }
@@ -132,25 +151,25 @@ public:
         if (row > 1) {
             // up
             State state;
-            get_next_board_in_dir('U', state);
+            get_next_state_in_dir('U', state);
             next_states.push_back(make_pair('U', state));
         }
         if (row < n) {
             // down
             State state;
-            get_next_board_in_dir('D', state);
+            get_next_state_in_dir('D', state);
             next_states.push_back(make_pair('D', state));
         }
         if (col > 1) {
             // left
             State state;
-            get_next_board_in_dir('L', state);
+            get_next_state_in_dir('L', state);
             next_states.push_back(make_pair('L', state));
         }
         if (col < n) {
             // right
             State state;
-            get_next_board_in_dir('R', state);
+            get_next_state_in_dir('R', state);
             next_states.push_back(make_pair('R', state));
         }
         return next_states;
@@ -178,9 +197,13 @@ public:
             manhattan_dist += calc_Manhattan_dist(i);
         }
         return manhattan_dist;
-    }  
+    }
 
     bool check_target_board() const {
         return (get_Hamming_distance() == 0);
-    }  
+    }
+
+    bool operator<(const State &other) const {
+        return get_Manhattan_distance() < other.get_Manhattan_distance();
+    }
 };

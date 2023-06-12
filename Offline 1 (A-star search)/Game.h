@@ -4,12 +4,8 @@
 using namespace std;
 
 class Game {
-    
+
     class PQ_Node {
-        
-        bool operator>(const PQ_Node &other) const {
-            return make_pair(level+heuristic_dist, state) < make_pair(other.level+other.heuristic_dist, other.state);
-        }
 
     public:
         int level;
@@ -24,6 +20,14 @@ class Game {
             this->level = level;
             this->heuristic_dist = heuristic_dist;
             this->state = state;
+        }
+
+        bool operator>(const PQ_Node &other) const {
+            return make_pair(level+heuristic_dist, state) < make_pair(other.level+other.heuristic_dist, other.state);
+        }
+
+        bool operator<(const PQ_Node &other) const {
+            return make_pair(level+heuristic_dist, state) > make_pair(other.level+other.heuristic_dist, other.state);
         }
     };
 
@@ -44,14 +48,26 @@ class Game {
         inv_dir['U'] = 'D';
     }
 
-    void init() {
-        
+    void init(int n) {
+        this->n = n;
+        initial_state.init(n);
+        init_inv_dir();
+    }
+
+    void backtrack(const string &s) const {
+        initial_state.write();
+        State state = initial_state;
+        for (int i = 1; i < s.length(); i++) {
+            assert(state.get_next_state_in_dir(s[i], state));
+            state.write();
+        }
     }
 
 public:
 
     Game(int n) {
-        
+        init(n);
+        initial_state.read();
     }
 
     void play(int param) {
@@ -66,7 +82,8 @@ public:
             if (top_pq_node.state.check_target_board()) {
                 // target state reached
                 // backtrack
-                cerr << dir << '\n';
+                cout << "Minimum number of moves = " << dir.length()-1 << "\n\n";
+                backtrack(dir);
                 break;
             }
 
