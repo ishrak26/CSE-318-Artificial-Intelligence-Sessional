@@ -54,15 +54,6 @@ class Game {
         init_inv_dir();
     }
 
-    void backtrack(const string &s) const {
-        initial_state.write();
-        State state = initial_state;
-        for (int i = 1; i < s.length(); i++) {
-            assert(state.get_next_state_in_dir(s[i], state));
-            state.write();
-        }
-    }
-
 public:
 
     Game(int n) {
@@ -70,21 +61,26 @@ public:
         initial_state.read();
     }
 
-    void play(int param) {
+    // returns the no. of moves required to reach the goal state
+    int play(int param, string &s, int &explored, int &expanded) {
+        if (!initial_state.check_solvable()) return -1;
+
+        explored = expanded = 0;
         priority_queue<pair<PQ_Node, string>> pq;
         PQ_Node src_pq_node(0, get_distance_from_state(param, initial_state), initial_state);
         pq.push(make_pair(src_pq_node, "I"));
+        explored++;
 
         while (!pq.empty()) {
             auto [top_pq_node, dir] = pq.top();
             pq.pop();
+            expanded++;
 
             if (top_pq_node.state.check_target_board()) {
                 // target state reached
                 // backtrack
-                cout << "Minimum number of moves = " << dir.length()-1 << "\n\n";
-                backtrack(dir);
-                break;
+                s = dir;
+                return dir.length()-1;
             }
 
             vector<pair<char, State>> next_states = top_pq_node.state.get_next_states();
@@ -93,8 +89,18 @@ public:
                     // not returning to parent state
                     PQ_Node pq_node(top_pq_node.level+1, get_distance_from_state(param, state), state);
                     pq.push(make_pair(pq_node, dir+state_dir));
+                    explored++;
                 }
             }
+        }
+    }
+
+    void backtrack(const string &s) const {
+        initial_state.write();
+        State state = initial_state;
+        for (int i = 1; i < s.length(); i++) {
+            assert(state.get_next_state_in_dir(s[i], state));
+            state.write();
         }
     }
 

@@ -65,6 +65,18 @@ class State {
         return abs(target_row - pos[num].first) + abs(target_col - pos[num].second);
     }
 
+    int count_inversion() {
+        int cnt = 0;
+        for (int i = 1; i < n*n; i++) {
+            for (int j = i+1; j < n*n; j++) {
+                if (pos[j] > pos[i]) {
+                    cnt++;
+                }
+            }
+        }
+        return cnt;
+    }
+
 public:
     State() {
 
@@ -205,5 +217,14 @@ public:
 
     bool operator<(const State &other) const {
         return get_Manhattan_distance() < other.get_Manhattan_distance();
+    }
+
+    bool check_solvable() {
+        int inv_cnt = count_inversion();
+        if (n&1) {
+            return (inv_cnt % 2 == 0);
+        }
+        // n even
+        return ((inv_cnt + n - get_blank_pos().first + 1) % 2 == 0);
     }
 };
