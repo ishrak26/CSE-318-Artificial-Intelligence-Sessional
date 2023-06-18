@@ -10,7 +10,7 @@ int main() {
     int n;
     cin >> n;
     Game game(n);
-    string s;
+    string s; // direction string to generate goal state from initial state
     int explored, expanded;
     int manhattan = game.play(1, s, explored, expanded);
     if (manhattan == -1) {

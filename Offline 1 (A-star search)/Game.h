@@ -5,6 +5,7 @@ using namespace std;
 
 class Game {
 
+    // node for priority queue
     class PQ_Node {
 
     public:
@@ -33,8 +34,9 @@ class Game {
 
     int n;
     State initial_state;
-    vector<char> inv_dir;
+    vector<char> inv_dir; // for ease of 'not-returning-to-parent-state' optimization
 
+    // returns heuristic distance of state
     int get_distance_from_state(int param, const State &state) {
         if (param == 0) return state.get_Hamming_distance();
         return state.get_Manhattan_distance();
@@ -62,6 +64,8 @@ public:
     }
 
     // returns the no. of moves required to reach the goal state
+    // returns -1 if the game is not solvable
+    // s will be the direction string to reach goal state from initial state
     int play(int param, string &s, int &explored, int &expanded) {
         if (!initial_state.check_solvable()) return -1;
 
@@ -74,7 +78,6 @@ public:
         while (!pq.empty()) {
             auto [top_pq_node, dir] = pq.top();
             pq.pop();
-            expanded++;
 
             if (top_pq_node.state.check_target_board()) {
                 // target state reached
@@ -84,6 +87,7 @@ public:
             }
 
             vector<pair<char, State>> next_states = top_pq_node.state.get_next_states();
+            expanded++;
             for (auto [state_dir, state] : next_states) {
                 if (state_dir != inv_dir[dir.back()]) {
                     // not returning to parent state
@@ -95,6 +99,7 @@ public:
         }
     }
 
+    // generate goal state from initial state following the direction string
     void backtrack(const string &s) const {
         initial_state.write();
         State state = initial_state;
