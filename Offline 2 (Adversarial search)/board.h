@@ -1,4 +1,4 @@
-#include <bits.stdc++.h>
+#include <bits/stdc++.h>
 
 using namespace std;
 
@@ -11,7 +11,10 @@ class Board {
     int board[2][BINS+1];
     // row 1 is player 0 (bottom row)
     // row 2 is player 1 (top row)
+
     pair<int, int> next_bin[2][BINS+1];
+
+    int stone_count[2]; // no. of stones remaining for a player
 
     void init_next_bin() {
         // initialize for bottom row
@@ -29,6 +32,8 @@ class Board {
     }
 
 public:
+
+
     Board() {
         // initialize board
         for (int i = 0; i < 2; i++) {
@@ -36,17 +41,19 @@ public:
                 board[i][j] = STONES;
             }
         }
+        stone_count[P0] = stone_count[P1] = BINS * STONES;
         init_next_bin();
     }
 
-    Board(const Board &board) {
+    void copy_board(Board &other) {
         // copy board
         for (int i = 0; i < 2; i++) {
-            for (int j = 1; j <= BINS; j++) {
-                this->board[i][j] = board[i][j];
+            for (int j = 0; j <= BINS; j++) {
+                this->board[i][j] = other.board[i][j];
             }
         }
-        init_next_bin();
+        stone_count[P0] = other.get_rem_stones(P0);
+        stone_count[P1] = other.get_rem_stones(P1);
     }
 
     bool check_valid_bin(int player, int bin) {
@@ -57,5 +64,64 @@ public:
         // else P1
         // bin count starts from right to left
         return board[P1][BINS-bin+1];
+    }
+
+    void print() {
+        for (int i = 0; i < 2; i++) {
+            for (int j = 0; j <= BINS; j++) {
+                cout << board[i][j] << ' ';
+            }
+            cout << '\n';
+        }
+    }
+
+    int get_storage(int player) {
+        return board[player][0];
+    }
+
+    int get_rem_stones(int player) {
+        return stone_count[player];
+    }
+
+    void play_move(int player, int bin, int &move_earned, int &stones_captured) {
+        move_earned = stones_captured = 0;
+        pair<int, int> curr;
+        if (player == P0) {
+            curr = make_pair(player, bin);
+        }
+        else {
+            curr = make_pair(player, BINS-bin+1);
+        }
+        auto [x,y] = curr;
+        int rem = board[x][y];
+        board[x][y] = 0;
+        while (rem) {
+            curr = next_bin[curr.first][curr.second];
+            auto [xx,yy] = curr;
+            board[xx][yy]++;
+            rem--;
+        }
+        if (curr == make_pair(player, 0)) {
+            move_earned = 1;
+        }
+        else {
+            auto [xx,yy] = curr;
+            if (board[xx][yy] == 1 && xx == player) {
+                board[player][0] += board[xx][yy] + board[xx^1][yy];
+                stones_captured += board[xx][yy] + board[xx^1][yy];
+                board[xx][yy] = 0;
+                board[xx^1][yy] = 0;
+            }
+        }
+        for (int i = 0; i < 2; i++) {
+            stone_count[i] = 0
+            for (int j = 1; j <= BINS; j++) {
+                stone_count[i] += board[i][j];
+            }
+        }
+    }
+
+    int get_score(int player) {
+        return get_storage(player) + get_rem_stones(player);
     }
 };
