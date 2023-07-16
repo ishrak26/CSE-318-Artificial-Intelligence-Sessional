@@ -4,7 +4,7 @@
 using namespace std;
 
 #define HEU_CNT 4
-#define DEPTH 5
+#define DEPTH 7
 
 #define W1 3
 #define W2 4
@@ -81,7 +81,25 @@ public:
     int simulate_next_moves() {
         if (depth == DEPTH) {
             // handle separately
-
+//            int flag = 0;
+////            Board old_board;
+////            old_board.copy_board(board);
+//            for (int i = 1; i <= BINS; i++) {
+//                if (board.check_valid_bin(curr_player, i)) {
+//                    if (!flag) {
+//                        flag = 1;
+//                    }
+//                    // try to play
+//                    Board new_board;
+//                    new_board.copy_board(board);
+//                    int m, c;
+//                    new_board.play_move(curr_player, i, m, c);
+//                    if (m) {
+//                        // move earned
+//
+//                    }
+//                }
+//            }
 
 
             return get_heuristic_val(h_num);
@@ -206,6 +224,17 @@ public:
             else {
                 return beta;
             }
+        }
+    }
+
+    void play_fixed_move(int bin) {
+        int me, sc;
+        board.play_move(curr_player, bin, me, sc);
+        if (me) {
+            additional_move_earned++;
+        }
+        else if (sc) {
+            stones_captured += sc;
         }
     }
 

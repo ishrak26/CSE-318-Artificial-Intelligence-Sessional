@@ -21,6 +21,7 @@ class Game {
             if (board.check_valid_bin(curr_player, i)) {
                 // try to play this move
                 Mancala mancala(additional_moves[curr_player], stones_captured[curr_player], curr_player, 0, alpha, beta, board, (curr_player==P0 ? h1 : h2));
+                mancala.play_fixed_move(i);
                 int val = mancala.simulate_next_moves();
 //                cerr << i << " " << curr_player << " " << val << '\n';
                 if (curr_player == MAX_PLAY) {
