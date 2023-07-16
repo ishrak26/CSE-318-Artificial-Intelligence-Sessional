@@ -8,13 +8,13 @@ using namespace std;
 #define P1 0 // player 1
 
 class Board {
-    int board[2][BINS+1];
+    vector<vector<int>> board;
     // row 1 is player 0 (bottom row)
     // row 2 is player 1 (top row)
 
-    pair<int, int> next_bin[2][BINS+1];
+    vector<vector<pair<int, int>>> next_bin;
 
-    int stone_count[2]; // no. of stones remaining for a player
+    vector<int> stone_count; // no. of stones remaining for a player
 
     void init_next_bin() {
         // initialize for bottom row
@@ -32,10 +32,11 @@ class Board {
     }
 
 public:
-
-
     Board() {
         // initialize board
+        board = vector<vector<int>>(2, vector<int>(BINS+1));
+        next_bin = vector<vector<pair<int, int>>> (2, vector<pair<int, int>> (BINS+1));
+        stone_count = vector<int>(2);
         for (int i = 0; i < 2; i++) {
             for (int j = 1; j <= BINS; j++) {
                 board[i][j] = STONES;
@@ -47,13 +48,8 @@ public:
 
     void copy_board(Board &other) {
         // copy board
-        for (int i = 0; i < 2; i++) {
-            for (int j = 0; j <= BINS; j++) {
-                this->board[i][j] = other.board[i][j];
-            }
-        }
-        stone_count[P0] = other.get_rem_stones(P0);
-        stone_count[P1] = other.get_rem_stones(P1);
+        board = other.board;
+        stone_count = other.stone_count;
     }
 
     bool check_valid_bin(int player, int bin) {
@@ -114,7 +110,7 @@ public:
             }
         }
         for (int i = 0; i < 2; i++) {
-            stone_count[i] = 0
+            stone_count[i] = 0;
             for (int j = 1; j <= BINS; j++) {
                 stone_count[i] += board[i][j];
             }
