@@ -122,4 +122,13 @@ public:
     int get_score(int player) {
         return get_storage(player) + get_rem_stones(player);
     }
+
+    bool check_game_end(int player) {
+        for (int i = 1; i <= BINS; i++) {
+            if (check_valid_bin(player, i)) {
+                return false;
+            }
+        }
+        return true;
+    }
 };
