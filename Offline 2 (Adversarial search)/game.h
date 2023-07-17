@@ -34,8 +34,8 @@ class Game {
     void helper_play_ai_ai(int h1, int h2, int curr_player) {
 
         if (print) {
-            cout << "Player " << (curr_player == P0 ? "1\n" : "2\n");
             board.print();
+            cout << "Player " << (curr_player == P0 ? "1" : "2") << "'s turn\n";
             cout << '\n';
         }
 
@@ -82,8 +82,8 @@ class Game {
     }
 
     void helper_play_human_ai(int h1, int h2, int curr_player) {
-        cout << "Player: " << (curr_player == P0 ? "You\n" : "Computer\n");
         board.print();
+        cout << "Player: " << (curr_player == P0 ? "You\n" : "Computer\n");
         cout << '\n';
 
         if (curr_player == MAX_PLAY) {

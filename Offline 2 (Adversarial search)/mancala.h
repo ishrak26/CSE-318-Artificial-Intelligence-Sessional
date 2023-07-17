@@ -4,7 +4,7 @@
 using namespace std;
 
 #define HEU_CNT 4
-#define DEPTH 7
+#define DEPTH 8
 
 #define W1 3
 #define W2 4
