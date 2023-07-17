@@ -179,8 +179,8 @@ public:
                     int m, c;
                     new_board.play_move(curr_player, i, m, c);
                     if (m) {
-                        // move earned
-                        Mancala new_mancala(additional_move_earned+1, stones_captured, curr_player, depth+1, alpha, beta, new_board, h_num);
+                        // move earned for the 2nd player
+                        Mancala new_mancala(additional_move_earned, stones_captured, curr_player, depth+1, alpha, beta, new_board, h_num);
                         int val = new_mancala.simulate_next_moves();
                         if (val < beta) {
                             beta = val;
@@ -192,7 +192,7 @@ public:
                     }
                     else {
                         if (c) {
-                            Mancala new_mancala(additional_move_earned, stones_captured+c, curr_player^1, depth+1, alpha, beta, new_board, h_num);
+                            Mancala new_mancala(additional_move_earned, stones_captured, curr_player^1, depth+1, alpha, beta, new_board, h_num);
                             int val = new_mancala.simulate_next_moves();
                             if (val < beta) {
                                 beta = val;
@@ -230,6 +230,9 @@ public:
     void play_fixed_move(int bin) {
         int me, sc;
         board.play_move(curr_player, bin, me, sc);
+        if (curr_player == P1) {
+            return;
+        }
         if (me) {
             additional_move_earned++;
         }

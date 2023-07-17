@@ -63,12 +63,14 @@ public:
     }
 
     void print() {
-        for (int i = 0; i < 2; i++) {
-            for (int j = 0; j <= BINS; j++) {
-                cout << board[i][j] << ' ';
-            }
-            cout << '\n';
+        for (int j = 0; j <= BINS; j++) {
+            cout << board[0][j] << '\t';
         }
+        cout << "\n\t";
+        for (int j = 1; j <= BINS; j++) {
+            cout << board[1][j] << '\t';
+        }
+        cout << board[1][0] << '\n';
     }
 
     int get_storage(int player) {
