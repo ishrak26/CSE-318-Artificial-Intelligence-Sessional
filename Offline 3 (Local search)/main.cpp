@@ -31,12 +31,12 @@ typedef vector<vi> vvi;
 
 const ll INF = (1LL<<59);
 const int MAXN = 5005;
+const int ITR_CNT = 20;
 
 // 0 <= alpha <= 100
-void semi_greedy_maxcut(vector<pair<ll, pii>> edges, vector<vpli> &adj, ll alpha, vi &S, vi &Sc, ll &cut) {
+void semi_greedy_maxcut(vector<pair<ll, pii>> &edges, vector<vpli> &adj, ll alpha, vi &S, vi &Sc, ll &cut) {
     int n = adj.size() - 1; // no. of nodes
     
-    sort(edges.rbegin(), edges.rend());
     ll w_min = edges.back().first;
     ll w_max = edges[0].first;
 
@@ -47,8 +47,10 @@ void semi_greedy_maxcut(vector<pair<ll, pii>> edges, vector<vpli> &adj, ll alpha
         if (edge.first * 100LL >= mu) {
             RCL_edges.push_back(edge);
         }
+        else {
+            break; // sorted edge list
+        }
     } 
-    assert(!RCL_edges.empty());
 
     bitset<MAXN> X, Y; // desired sets
     X = 0, Y = 0;
@@ -60,7 +62,10 @@ void semi_greedy_maxcut(vector<pair<ll, pii>> edges, vector<vpli> &adj, ll alpha
     {
         int pick_idx = 0;
         // select edge at random
-        pick_idx = rand() % RCL_edges.size();
+        if (!RCL_edges.empty()) {
+            pick_idx = rand() % RCL_edges.size();
+        }
+        
         auto edge = edges[pick_idx];
         X.set(edge.second.first);
         Y.set(edge.second.second);
@@ -98,7 +103,15 @@ void semi_greedy_maxcut(vector<pair<ll, pii>> edges, vector<vpli> &adj, ll alpha
                 RCL_vertices.push_back(v);
             }
         }
-        int pick_idx = random() % RCL_vertices.size();
+        
+        if (RCL_vertices.empty()) {
+            break;
+        }
+
+        int pick_idx = 0;
+        if (!RCL_vertices.empty()) {
+            pick_idx = rand() % RCL_vertices.size();
+        }
         auto vertex = RCL_vertices[pick_idx];
 
         if (sigma_x[vertex] > sigma_y[vertex]) {
@@ -114,21 +127,16 @@ void semi_greedy_maxcut(vector<pair<ll, pii>> edges, vector<vpli> &adj, ll alpha
     cut = 0;
     
     for (int i = 1; i <= n; i++) {
-        if (X[i]) {
-            S.push_back(i);
-        }
-        else if (Y[i]) {
+        if (Y[i]) {
             Sc.push_back(i);
         }
         else {
-            assert(false);
-        }
-    }
-    
-    for (auto edge : edges) {
-        auto [u,v] = edge.second;
-        if ((X[u] && Y[v]) || (Y[u] && X[v])) {
-            cut += edge.first;
+            S.push_back(i);
+            for (auto [w,u] : adj[i]) {
+                if (Y[u]) {
+                    cut += w;
+                }
+            }
         }
     }
 }
@@ -193,7 +201,7 @@ void local_search_maxcut(vi &S, vi &Sc, vector<vpli> &adj, ll &cut) {
 }
 
 // type = (0,1,2) --> (greedy, semi-greedy, random)
-ll grasp_maxcut(int itr_cnt, int type, vector<pair<ll, pii>> &edges, vector<vpli> adj) {
+ll grasp_maxcut(int itr_cnt, int type, vector<pair<ll, pii>> &edges, vector<vpli> &adj) {
     ll cut = -INF;
     for (int i = 1; i <= itr_cnt; i++) {
         vi S, Sc;
@@ -217,19 +225,50 @@ ll grasp_maxcut(int itr_cnt, int type, vector<pair<ll, pii>> &edges, vector<vpli
 
 int main() {
     FASTIO
-    int n, m;
-    cin >> n >> m;
-    vector<pair<ll, pii>> edges(m); 
-    vector<vpli> adj(n+1);
-    for (int i = 0; i < m; i++) {
-        int u, v;
-        ll w;
-        cin >> u >> v >> w;
-        edges[i] = {w, {u,v}};
-        adj[u].push_back({w, v});
-        adj[v].push_back({w, u});
+
+    // freopen("debug.txt", "w", stderr);
+
+    string filepath = "set1/";
+
+    vi filenums{1,2,3,11,12,13,14,15,16,22,23,24,32,33,34,35,36,37,43,44,45,48,49,50};
+
+    bool flag = 1;
+
+    for (auto filenum : filenums) {
+        ifstream fin;
+        string filename = filepath + "g" + to_string(filenum) + ".rud";
+        fin.open(filename, ios_base::in);
+
+        int n, m;
+        fin >> n >> m;
+        vector<pair<ll, pii>> edges(m); 
+        vector<vpli> adj(n+1);
+        for (int i = 0; i < m; i++) {
+            int u, v;
+            ll w;
+            fin >> u >> v >> w;
+            edges[i] = {w, {u,v}};
+            adj[u].push_back({w, v});
+            adj[v].push_back({w, u});
+        }
+
+        sort(edges.rbegin(), edges.rend());
+
+        // greedy
+        ll cut_greedy = grasp_maxcut(ITR_CNT, 0, edges, adj);
+
+        ofstream fout;
+        filename = "out.csv";
+        if (flag) {
+            fout.open(filename, ios_base::out);
+            flag = 0;
+        }
+        else {
+            fout.open(filename, ios_base::app);
+        }
+        
+        fout << "G" << filenum << "," << cut_greedy << endl;
     }
-    ll cut = grasp_maxcut(10, 0, edges, adj);
-    cout << cut << endl;
+
     return 0;
 }
