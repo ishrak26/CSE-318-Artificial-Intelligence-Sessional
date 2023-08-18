@@ -33,7 +33,7 @@ const ll INF = (1LL<<59);
 const int MAXN = 5005;
 
 // 0 <= alpha <= 100
-void semi_greedy_maxcut(vector<pair<ll, pii>> edges, vector<vpli> adj, ll alpha, vi &S, vi &Sc, ll &cut) {
+void semi_greedy_maxcut(vector<pair<ll, pii>> edges, vector<vpli> &adj, ll alpha, vi &S, vi &Sc, ll &cut) {
     int n = adj.size() - 1; // no. of nodes
     
     sort(edges.rbegin(), edges.rend());
@@ -133,8 +133,103 @@ void semi_greedy_maxcut(vector<pair<ll, pii>> edges, vector<vpli> adj, ll alpha,
     }
 }
 
+void local_search_maxcut(vi &S, vi &Sc, vector<vpli> &adj, ll &cut) {
+    int n = adj.size() - 1;
+    
+    bool change = true;
+    bitset<MAXN> X;
+    X = 0;
+
+    for (auto v : S) {
+        X.set(v);
+    }
+
+    // X[v] = 1 --> v in S, else v in Sc
+
+    // calculate sigma
+
+    while (change) {
+        change = false;
+        for (int v = 1; v <= n && !change; v++) {
+            ll sigma_s = 0, sigma_sc = 0;
+            for (auto [w,u] : adj[v]) {
+                if (X[u]) {
+                    sigma_sc += w;
+                }
+                else {
+                    sigma_s += w;
+                }
+            }
+            
+            if (X[v] && (sigma_sc > sigma_s)) {
+                X.reset(v);
+                change = true;
+            }
+            else if (!X[v] && (sigma_s > sigma_sc)) {
+                X.set(v);
+                change = true;
+            }
+        }
+    }
+
+    // recalculate S, Sc, cut
+    S.clear();
+    Sc.clear();
+    cut = 0;
+    for (int v = 1; v <= n; v++) {
+        if (X[v]) {
+            S.push_back(v);
+            for (auto [w,u] : adj[v]) {
+                if (!X[u]) {
+                    cut += w;
+                }
+            }
+        }
+        else {
+            Sc.push_back(v);
+            // cut already calculated by other end in S of its edges
+        }
+    }
+}
+
+// type = (0,1,2) --> (greedy, semi-greedy, random)
+ll grasp_maxcut(int itr_cnt, int type, vector<pair<ll, pii>> &edges, vector<vpli> adj) {
+    ll cut = -INF;
+    for (int i = 1; i <= itr_cnt; i++) {
+        vi S, Sc;
+        ll alpha;
+        if (type == 0) {
+            alpha = 100;
+        }
+        else if (type == 2) {
+            alpha = 0;
+        }
+        else {
+            alpha = rand() % 101;
+        }
+        ll w;
+        semi_greedy_maxcut(edges, adj, alpha, S, Sc, w);
+        local_search_maxcut(S, Sc, adj, w);
+        cut = max(cut, w);
+    }
+    return cut;
+}
+
 int main() {
     FASTIO
-    
+    int n, m;
+    cin >> n >> m;
+    vector<pair<ll, pii>> edges(m); 
+    vector<vpli> adj(n+1);
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        ll w;
+        cin >> u >> v >> w;
+        edges[i] = {w, {u,v}};
+        adj[u].push_back({w, v});
+        adj[v].push_back({w, u});
+    }
+    ll cut = grasp_maxcut(10, 0, edges, adj);
+    cout << cut << endl;
     return 0;
 }
