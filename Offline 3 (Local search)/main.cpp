@@ -31,7 +31,7 @@ typedef vector<vi> vvi;
 
 const ll INF = (1LL<<59);
 const int MAXN = 5005;
-const int ITR_CNT = 20;
+const int ITR_CNT = 50;
 
 // 0 <= alpha <= 100
 void semi_greedy_maxcut(vector<pair<ll, pii>> &edges, vector<vpli> &adj, ll alpha, vi &S, vi &Sc, ll &cut) {
@@ -83,35 +83,33 @@ void semi_greedy_maxcut(vector<pair<ll, pii>> &edges, vector<vpli> &adj, ll alph
                 if (Y[u]) {
                     // u belongs to Y
                     sigma_x[v] += w;
-                    sigma_x_min = min(sigma_x_min, sigma_x[v]);
-                    sigma_x_max = max(sigma_x_max, sigma_x[v]);
                 }
                 else if (X[u]) {
                     // u belongs to X
                     sigma_y[v] += w;
-                    sigma_y_min = min(sigma_y_min, sigma_y[v]);
-                    sigma_y_max = max(sigma_y_max, sigma_y[v]);
                 }
             }
+
+            sigma_x_min = min(sigma_x_min, sigma_x[v]);
+            sigma_x_max = max(sigma_x_max, sigma_x[v]);
+
+            sigma_y_min = min(sigma_y_min, sigma_y[v]);
+            sigma_y_max = max(sigma_y_max, sigma_y[v]);
         }
         ll w_min = min(sigma_x_min, sigma_y_min);
         ll w_max = max(sigma_x_max, sigma_y_max);
         ll mu = w_min * 100LL + alpha * (w_max - w_min);
+
+        mu = min(mu, w_max * 100LL);
+
         vi RCL_vertices;
         for (auto v : rem) {
-            if (max(sigma_x[v], sigma_y[v]) * 100LL >= mu) {
+            if ((max(sigma_x[v], sigma_y[v]) * 100LL) >= mu) {
                 RCL_vertices.push_back(v);
             }
         }
-        
-        if (RCL_vertices.empty()) {
-            break;
-        }
-
-        int pick_idx = 0;
-        if (!RCL_vertices.empty()) {
-            pick_idx = rand() % RCL_vertices.size();
-        }
+        assert(!RCL_vertices.empty());
+        int pick_idx = rand() % RCL_vertices.size();
         auto vertex = RCL_vertices[pick_idx];
 
         if (sigma_x[vertex] > sigma_y[vertex]) {
@@ -130,13 +128,16 @@ void semi_greedy_maxcut(vector<pair<ll, pii>> &edges, vector<vpli> &adj, ll alph
         if (Y[i]) {
             Sc.push_back(i);
         }
-        else {
+        else if (X[i]) {
             S.push_back(i);
             for (auto [w,u] : adj[i]) {
                 if (Y[u]) {
                     cut += w;
                 }
             }
+        }
+        else {
+            assert(false);
         }
     }
 }
@@ -226,11 +227,12 @@ ll grasp_maxcut(int itr_cnt, int type, vector<pair<ll, pii>> &edges, vector<vpli
 int main() {
     FASTIO
 
-    // freopen("debug.txt", "w", stderr);
+    freopen("debug.txt", "w", stderr);
 
     string filepath = "set1/";
 
-    vi filenums{1,2,3,11,12,13,14,15,16,22,23,24,32,33,34,35,36,37,43,44,45,48,49,50};
+    vi filenums(54);
+    iota(filenums.begin(), filenums.end(), 11);
 
     bool flag = 1;
 
