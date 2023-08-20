@@ -1,0 +1,7 @@
+Problem,,,Constructive algorithm,,Local search,,GRASP
+Name,n,m,Randomized-1,Greedy-1,Local-1,,GRASP-1
+,,,,,No. of iterations,Best value,No. of iterations,Best value
+G22,2000,19990,12895,13019,239,12829,20,13019
+G23,2000,19990,12898,13014,235,12828,20,13014
+G24,2000,19990,12883,13009,239,12829,20,13009
+G25,2000,19990,12886,13029,240,12826,20,13029

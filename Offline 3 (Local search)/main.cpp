@@ -1,10 +1,6 @@
 #include <bits/stdc++.h>
-// ordered_set
-#include <ext/pb_ds/assoc_container.hpp>
-#include <ext/pb_ds/tree_policy.hpp>
 
 using namespace std;
-using namespace __gnu_pbds;
 
 #define FASTIO               \
     ios::sync_with_stdio(0); \
@@ -12,8 +8,6 @@ using namespace __gnu_pbds;
     cout.tie(0);
 
 // #define endl '\n'
-
-template<class T> using ordered_set =tree<T, null_type, less<T>, rb_tree_tag,tree_order_statistics_node_update>;
 
 typedef long long ll;
 typedef long double ld;
@@ -31,7 +25,7 @@ typedef vector<vi> vvi;
 
 const ll INF = (1LL<<59);
 const int MAXN = 5005;
-const int ITR_CNT = 50;
+int iteration_cnt = 20;
 
 // 0 <= alpha <= 100
 void semi_greedy_maxcut(vector<pair<ll, pii>> &edges, vector<vpli> &adj, ll alpha, vi &S, vi &Sc, ll &cut) {
@@ -54,7 +48,7 @@ void semi_greedy_maxcut(vector<pair<ll, pii>> &edges, vector<vpli> &adj, ll alph
 
     bitset<MAXN> X, Y; // desired sets
     X = 0, Y = 0;
-    ordered_set<int> rem; // remaining vertices
+    set<int> rem; // remaining vertices
     for (int i = 1; i <= n; i++) {
         rem.insert(i);
     }
@@ -252,18 +246,22 @@ int main(int argc, char *argv[]) {
     string suf = "";
     string outfile1 = "greedy-randomized", outfile2 = "semi-greedy";
 
-    if (argc == 3) {
+    if (argc >= 3) {
         lo = atoi(argv[1]);
         hi = atoi(argv[2]);
+    }
+
+    if (argc == 4) {
+        iteration_cnt = atoi(argv[3]);
     }
 
     ofstream fout;
     string filename = outfile1 + "_" + to_string(lo) + "_" + to_string(hi) + ".csv";
 
     fout.open(filename, ios::out);
-    fout << "Problem,,,Constructive algorithm,,Local search,,GRASP" << endl;
-    fout << "Name,n,m,Randomized-1,Greedy-1,Local-1,,GRASP-1" << endl;
-    fout << ",,,,,No. of iterations,Best value,No. of iterations,Best value" << endl;
+    fout << "Problem,,,Constructive algorithm,,,Local search,,GRASP" << endl;
+    fout << "Name,n,m,Randomized-1,Greedy-1,Semi-greedy-1,Local-1,,GRASP-1" << endl;
+    fout << ",,,,,,No. of iterations,Best value,No. of iterations,Best value" << endl;
 
     filename = outfile2 + "_" + to_string(lo) + "_" + to_string(hi) + ".csv";
     ofstream fout_semi;
@@ -274,8 +272,6 @@ int main(int argc, char *argv[]) {
     fout_semi << ",,,,,No. of iterations,Best value,No. of iterations,Best value" << endl;
 
     vector<pair<double,ll>> alphas;
-
-    
 
     for (int filenum = lo; filenum <= hi; filenum++) {
         alphas.clear();
@@ -299,6 +295,8 @@ int main(int argc, char *argv[]) {
 
         sort(edges.rbegin(), edges.rend()); 
 
+        ll semi_greedy_cut;
+
         {
             // greedy and randomized
             fout << "G" << filenum << "," << n << "," << m << ",";
@@ -316,7 +314,7 @@ int main(int argc, char *argv[]) {
                 ll sum = 0;
                 for (int i = 0; i < sample_cnt; i++) {
                     
-                    ll cut = grasp_maxcut(ITR_CNT, 2, edges, adj, ls_itr, ls_best_val, alphas);
+                    ll cut = grasp_maxcut(iteration_cnt, 2, edges, adj, ls_itr, ls_best_val, alphas);
                     sum += cut;
                     ls_sample_cnt++;
                     ls_itr_sum += ls_itr;
@@ -330,7 +328,7 @@ int main(int argc, char *argv[]) {
 
             // greedy
             {
-                ll cut = grasp_maxcut(ITR_CNT, 0, edges, adj, ls_itr, ls_best_val, alphas);
+                ll cut = grasp_maxcut(iteration_cnt, 0, edges, adj, ls_itr, ls_best_val, alphas);
                 ls_sample_cnt++;
                 ls_itr_sum += ls_itr;
                 ls_best_val_sum += ls_best_val;
@@ -339,38 +337,39 @@ int main(int argc, char *argv[]) {
 
                 fout << cut << ",";
             }
-            
-            fout << (ls_itr_sum / ls_sample_cnt) << "," << (ls_best_val_sum / ls_sample_cnt) << ",";
-            fout << ITR_CNT << "," << best_val << endl;
-        }
 
-        // semi-greedy
-        {
-            fout_semi << "G" << filenum << "," << n << "," << m << ",";
-
-            int ls_itr;
-            ll ls_best_val;
-
+            // semi-greedy
             {
-                ll cut = grasp_maxcut(ITR_CNT, 1, edges, adj, ls_itr, ls_best_val, alphas);
+                fout_semi << "G" << filenum << "," << n << "," << m << ",";
 
-                sort(alphas.begin(), alphas.end());
+                int ls_itr;
+                ll ls_best_val;
 
                 {
-                    auto [alpha,w] = alphas[0];
-                    fout_semi << alpha << "," << w << ",";
-                }
+                    ll cut = grasp_maxcut(iteration_cnt, 1, edges, adj, ls_itr, ls_best_val, alphas);
+                    fout << cut << ",";
 
-                fout_semi << ls_itr << "," << ls_best_val << ",";
-                fout_semi << ITR_CNT << "," << cut << endl;
+                    sort(alphas.begin(), alphas.end());
 
-                for (int i = 1; i < alphas.size(); i++) {
-                    auto [alpha,w] = alphas[i];
-                    fout_semi << ",,,";
-                    fout_semi << alpha << "," << w << ",";
-                    fout_semi << endl;
+                    {
+                        auto [alpha,w] = alphas[0];
+                        fout_semi << alpha << "," << w << ",";
+                    }
+
+                    fout_semi << ls_itr << "," << ls_best_val << ",";
+                    fout_semi << iteration_cnt << "," << cut << endl;
+
+                    for (int i = 1; i < alphas.size(); i++) {
+                        auto [alpha,w] = alphas[i];
+                        fout_semi << ",,,";
+                        fout_semi << alpha << "," << w << ",";
+                        fout_semi << endl;
+                    }
                 }
             }
+            
+            fout << (ls_itr_sum / ls_sample_cnt) << "," << (ls_best_val_sum / ls_sample_cnt) << ",";
+            fout << iteration_cnt << "," << best_val << endl;
         }
         
     }
