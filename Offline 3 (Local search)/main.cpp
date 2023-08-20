@@ -31,7 +31,7 @@ typedef vector<vi> vvi;
 
 const ll INF = (1LL<<59);
 const int MAXN = 5005;
-const int ITR_CNT = 10;
+const int ITR_CNT = 50;
 
 // 0 <= alpha <= 100
 void semi_greedy_maxcut(vector<pair<ll, pii>> &edges, vector<vpli> &adj, ll alpha, vi &S, vi &Sc, ll &cut) {
@@ -247,15 +247,25 @@ int main(int argc, char *argv[]) {
 
     string filepath = "set1/";
 
+    int lo = 11;
+    int hi = 11;
+    string suf = "";
+    string outfile1 = "greedy-randomized", outfile2 = "semi-greedy";
+
+    if (argc == 3) {
+        lo = atoi(argv[1]);
+        hi = atoi(argv[2]);
+    }
+
     ofstream fout;
-    string filename = "greedy-randomized.csv";
+    string filename = outfile1 + "_" + to_string(lo) + "_" + to_string(hi) + ".csv";
 
     fout.open(filename, ios::out);
     fout << "Problem,,,Constructive algorithm,,Local search,,GRASP" << endl;
     fout << "Name,n,m,Randomized-1,Greedy-1,Local-1,,GRASP-1" << endl;
     fout << ",,,,,No. of iterations,Best value,No. of iterations,Best value" << endl;
 
-    filename = "semi-greedy.csv";
+    filename = outfile2 + "_" + to_string(lo) + "_" + to_string(hi) + ".csv";
     ofstream fout_semi;
 
     fout_semi.open(filename, ios::out);
@@ -265,13 +275,7 @@ int main(int argc, char *argv[]) {
 
     vector<pair<double,ll>> alphas;
 
-    int lo = 11;
-    int hi = 11;
-
-    if (argc == 3) {
-        lo = atoi(argv[1]);
-        hi = atoi(argv[2]);
-    }
+    
 
     for (int filenum = lo; filenum <= hi; filenum++) {
         alphas.clear();
