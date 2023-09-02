@@ -192,6 +192,11 @@ void build_decision_tree(ordered_set<map<string, string>> ds, set<string> rem_at
             cur->isLeaf = false;
             for (set<string>::iterator it2 = attr_vals[attr].begin(); it2 != attr_vals[attr].end(); it2++) {
                 
+                if (cur->child.find(*it2) != cur->child.end()) {
+                    // node already created
+                    continue;
+                }
+                
                 cur->child[*it2] = new Node(cur);
                 
                 cur->child[*it2]->isLeaf = true;
@@ -253,6 +258,37 @@ void build_decision_tree(ordered_set<map<string, string>> ds, set<string> rem_at
     return;
 }
 
+void build_decision_tree() {
+    // calculate initial entropy
+    
+    // calculate frequency of each decision value
+    map<string, int> cnt;
+    for (ordered_set<map<string, string>>::iterator it = train_data.begin(); it != train_data.end(); it++) {
+        map<string, string> mp = *it;
+        cnt[mp["value"]]++;
+    }
+    double h = 0.0;
+    int max_cnt = -1;
+    string plu = "acc";
+    for (set<string>::iterator it = attr_vals["value"].begin(); it != attr_vals["value"].end(); it++) {
+        if (cnt[*it] > max_cnt) {
+            max_cnt = cnt[*it];
+            plu = *it;
+        }
+        double p = ((double)(cnt[*it])) / train_data.size();
+        h -= p * log2(p);
+    }
+    
+    set<string> rem_attrs;
+    for (int i = 0; i < 6; i++) { 
+        rem_attrs.insert(attrs[i]);
+    }
+    root = new Node;
+    build_decision_tree(train_data, rem_attrs, root, h, plu);
+}
+
+
+
 int main() {
     prepare_attr_vals();
     
@@ -271,6 +307,8 @@ int main() {
             test_data.insert(*it);
             train_data.erase(it);
         }
+
+        build_decision_tree();
     }
 
     return 0;
