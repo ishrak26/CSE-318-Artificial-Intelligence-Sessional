@@ -20,6 +20,8 @@ vector<string> attrs;
 
 map<string, set<string>> attr_vals;
 
+inline int dcmp(double x) { if (fabs(x) < EPS) return 0; else return x < 0 ? -1 : 1; }
+
 void prepare_attr_vals() {
     attrs = vector<string>{"buying","maint","doors","persons","lug_boot","safety","value"};
     
@@ -65,13 +67,30 @@ void input_dataset(string filepath) {
 }
 
 string root_attr;
-map<string, pair<bool,string>> decision_mp; // (isLeaf, next_attr)
+map<pair<string,string>, pair<bool,string>> decision_mp; // (isLeaf, next_attr)
+/*
+    decision_mp[{"buying","vhigh"}] = (false,"persons") means at this point of traversal, 
+    if the value of attribute "buying" is "vhigh", the next attribute to be checked is "persons"
 
-string build_decision_tree(ordered_set<map<string, string>> ds, set<string> rem_attrs, double h_par) {
+    decision_mp[{"buying","vhigh"}] = (true,"unacc") means if the value of the attribute "buying"
+    is "vhigh", we have reached a decision i.e. the decision is "unacc"
+*/
+
+/*
+    ds: dataset under consideration
+    rem_attrs: set of remaining attributes to be applied now
+    h_par: entropy of the parent attribute
+    par_plu: majority value of the parent attribute
+*/
+string build_decision_tree(ordered_set<map<string, string>> ds, set<string> rem_attrs, double h_par, string par_plu) {
     // find next_attribute among remaining attributes applicable for ds
 
     double info_gain = -1.0;
     string sel_attr; // selected attribute
+    map<string, map<string, string>> plu; 
+    /*
+        plu["buying"]["vhigh"] = "acc" means plurality for "vhigh" branch of "buying" attribute will be "acc"
+    */
     map<string, map<string, double>> new_hpar; // h_par to be passed after an attribute is selected
     /*
         say, new_hpar["buying"]["vhigh"] = 0.46 means entropy for the branch "vhigh" for the attribute "buying"
@@ -96,34 +115,71 @@ string build_decision_tree(ordered_set<map<string, string>> ds, set<string> rem_
 
         // calculate remainder of this attr
         double rem = 0.0;
-        for (map<string,map<string,int>>::iterator it2 = cnts.begin(); it2 != cnts.end(); it2++) {
+        for (set<string>::iterator it2 = attr_vals[attr].begin(); it2 != attr_vals[attr].end(); it2++) {
             /*
                 for an attribute "buying",
-                it2->first can be "vhigh"
-                it2->second can be a map containing ("acc",3),("unacc",4)... 
+                *it2 can be "vhigh"
+                cnts[*it2] can be a map containing ("acc",3),("unacc",4)... 
             */
             
             // calculate entropy for this branch
             double h = 0.0; 
             double tot = 0.0;
-            for (map<string,int>::iterator it3 = it2->second.begin(); it3 != it2->second.end(); it3++) {
+            for (map<string,int>::iterator it3 = cnts[*it2].begin(); it3 != cnts[*it2].end(); it3++) {
                 tot += it3->second;
             }
-            for (map<string,int>::iterator it3 = it2->second.begin(); it3 != it2->second.end(); it3++) {
-                /*
-                    it3->first cam be "acc","unacc"...
-                    it3->second is the no. of examples in ds whose value is it3->first
-                */
-                double p = it3->second / tot;
-                h -= p * log2(p);
+
+            if (dcmp(tot) == 0) {
+                // no example in the dataset for this branch
+                // take plurality of the parent, and make this a leaf
+                // entropy will be 0 for this branch
+                new_hpar[attr][*it2] = 0.0;
+                plu[attr][*it2] = par_plu;
+                decision_mp[make_pair(attr,*it2)] = make_pair(true, par_plu);
             }
-            rem += (tot / ds.size()) * h;
-            new_hpar[attr][it2->first] = h;
+            else {
+                int plu_cnt = -1;
+                string plu_val = "acc"; // default
+                for (map<string,int>::iterator it3 = cnts[*it2].begin(); it3 != cnts[*it2].end(); it3++) {
+                    /*
+                        it3->first cam be "acc","unacc"...
+                        it3->second is the no. of examples in ds whose value is it3->first
+                    */
+                    double p = it3->second / tot;
+                    h -= p * log2(p);
+                    if (it3->second > plu_cnt) {
+                        plu_cnt = it3->second;
+                        plu_val = it3->first;
+                    }
+                }
+                rem += (tot / ds.size()) * h;
+                new_hpar[attr][*it2] = h;
+                plu[attr][*it2] = plu_val;
+            }
         }
-        double gain = h_par - rem;
-        if (gain > info_gain) {
-            info_gain = gain;
-            sel_attr = attr;
+
+        // check if every branch leads to 0 entropy
+        bool flag = true;
+        for (set<string>::iterator it2 = attr_vals[attr].begin(); it2 != attr_vals[attr].end(); it2++) {
+            if (dcmp(new_hpar[attr][*it2]) != 0) {
+                flag = false;
+                break;
+            } 
+        }
+        if (flag) {
+            // every branch leads to 0 entropy
+            // no need create new node here, rather create a leaf for every branch
+            for (set<string>::iterator it2 = attr_vals[attr].begin(); it2 != attr_vals[attr].end(); it2++) {
+                decision_mp[make_pair(attr,*it2)] = make_pair(true, plu[attr][*it2]);
+            }
+            return attr;
+        }
+        else {
+            double gain = h_par - rem;
+            if (gain > info_gain) {
+                info_gain = gain;
+                sel_attr = attr;
+            }
         }
     }
 
@@ -132,9 +188,16 @@ string build_decision_tree(ordered_set<map<string, string>> ds, set<string> rem_
     rem_attrs.erase(sel_attr);
 
     if (rem_attrs.empty()) {
+        // it was the last attribute
+        // no need to create branch from here
+        // assign decision to every branch of sel_attr
+        for (set<string>::iterator it2 = attr_vals[sel_attr].begin(); it2 != attr_vals[sel_attr].end(); it2++) {
+            decision_mp[make_pair(sel_attr,*it2)] = make_pair(true, plu[sel_attr][*it2]);
+        }
         return sel_attr;
     }
 
+    // create new branches from here
     map<string, ordered_set<map<string, string>>> new_ds;
     /*
         say, sel_attr is "buying"
