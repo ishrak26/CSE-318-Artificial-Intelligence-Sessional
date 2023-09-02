@@ -66,23 +66,37 @@ void input_dataset(string filepath) {
     }
 }
 
-string root_attr;
-map<pair<string,string>, pair<bool,string>> decision_mp; // (isLeaf, next_attr)
-/*
-    decision_mp[{"buying","vhigh"}] = (false,"persons") means at this point of traversal, 
-    if the value of attribute "buying" is "vhigh", the next attribute to be checked is "persons"
+struct Node {
+    map<string, Node*> child; // one child node for each branch
+    Node *par;
+    string attr;
+    bool isLeaf;
+    string decision;
 
-    decision_mp[{"buying","vhigh"}] = (true,"unacc") means if the value of the attribute "buying"
-    is "vhigh", we have reached a decision i.e. the decision is "unacc"
-*/
+    Node() {
+        
+    }
+
+    Node(Node *par) : par(par) {}
+
+    ~Node() {
+        if (!isLeaf) {
+            for (set<string>::iterator it2 = attr_vals[attr].begin(); it2 != attr_vals[attr].end(); it2++) {
+                delete child[*it2];
+            }
+        }   
+    }
+};
+
+Node *root;
 
 /*
     ds: dataset under consideration
     rem_attrs: set of remaining attributes to be applied now
-    h_par: entropy of the parent attribute
-    par_plu: majority value of the parent attribute
+    par: parent node
+    cur: current node under consideration
 */
-string build_decision_tree(ordered_set<map<string, string>> ds, set<string> rem_attrs, double h_par, string par_plu) {
+void build_decision_tree(ordered_set<map<string, string>> ds, set<string> rem_attrs, Node *cur, double h_par, string par_plu) {
     // find next_attribute among remaining attributes applicable for ds
 
     double info_gain = -1.0;
@@ -135,7 +149,12 @@ string build_decision_tree(ordered_set<map<string, string>> ds, set<string> rem_
                 // entropy will be 0 for this branch
                 new_hpar[attr][*it2] = 0.0;
                 plu[attr][*it2] = par_plu;
-                decision_mp[make_pair(attr,*it2)] = make_pair(true, par_plu);
+                
+                cur->child[*it2] = new Node(cur);
+                
+                cur->child[*it2]->isLeaf = true;
+                cur->child[*it2]->decision = par_plu;
+
             }
             else {
                 int plu_cnt = -1;
@@ -168,11 +187,17 @@ string build_decision_tree(ordered_set<map<string, string>> ds, set<string> rem_
         }
         if (flag) {
             // every branch leads to 0 entropy
-            // no need create new node here, rather create a leaf for every branch
+            // no need to create new node here, rather create a leaf for every branch
+            cur->attr = attr;
+            cur->isLeaf = false;
             for (set<string>::iterator it2 = attr_vals[attr].begin(); it2 != attr_vals[attr].end(); it2++) {
-                decision_mp[make_pair(attr,*it2)] = make_pair(true, plu[attr][*it2]);
+                
+                cur->child[*it2] = new Node(cur);
+                
+                cur->child[*it2]->isLeaf = true;
+                cur->child[*it2]->decision = plu[attr][*it2];
             }
-            return attr;
+            return;
         }
         else {
             double gain = h_par - rem;
@@ -185,16 +210,24 @@ string build_decision_tree(ordered_set<map<string, string>> ds, set<string> rem_
 
     assert(!sel_attr.empty());
 
+    cur->attr = sel_attr;
+
     rem_attrs.erase(sel_attr);
 
     if (rem_attrs.empty()) {
         // it was the last attribute
         // no need to create branch from here
         // assign decision to every branch of sel_attr
+        
+        
+        cur->isLeaf = false;
         for (set<string>::iterator it2 = attr_vals[sel_attr].begin(); it2 != attr_vals[sel_attr].end(); it2++) {
-            decision_mp[make_pair(sel_attr,*it2)] = make_pair(true, plu[sel_attr][*it2]);
+            cur->child[*it2] = new Node(cur);
+                
+            cur->child[*it2]->isLeaf = true;
+            cur->child[*it2]->decision = plu[sel_attr][*it2];
         }
-        return sel_attr;
+        return;
     }
 
     // create new branches from here
@@ -210,20 +243,14 @@ string build_decision_tree(ordered_set<map<string, string>> ds, set<string> rem_
         new_ds[val].insert(mp);
     }
 
-    // build decision for each branch of sel_attr
+    // build decision tree for each branch of sel_attr
+    cur->isLeaf = false;
     for (set<string>::iterator it = attr_vals[sel_attr].begin(); it != attr_vals[sel_attr].end(); it++) {
-        if (abs(new_hpar[sel_attr][*it]) < EPS) {
-            // entropy 0
-            // leaf
-            // decision_mp[sel_attr] = make_pair(true, new_ds[*it].begin());
-            //TODO
-        }
-        
-        string ret = build_decision_tree(new_ds[*it], rem_attrs, new_hpar[sel_attr][*it]);
-        decision_mp[sel_attr] = make_pair(false, ret);
+        cur->child[*it] = new Node(cur);
+        build_decision_tree(new_ds[*it], rem_attrs, cur->child[*it], new_hpar[sel_attr][*it], plu[sel_attr][*it]);
     }
 
-    return sel_attr;
+    return;
 }
 
 int main() {
