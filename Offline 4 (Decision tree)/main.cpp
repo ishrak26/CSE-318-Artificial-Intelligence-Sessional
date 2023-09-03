@@ -310,11 +310,11 @@ void build_decision_tree() {
             max_cnt = cnt[*it];
             plu = *it;
         }
-        cerr << *it << " " << cnt[*it] << endl;
+        // cerr << *it << " " << cnt[*it] << endl;
         double p = ((double)(cnt[*it])) / train_data.size();
         h -= p * log2(p);
     }
-    cout << "plu is " << plu << endl;
+    // cout << "plu is " << plu << endl;
     
     set<string> rem_attrs;
     for (int i = 0; i < 6; i++) { 
@@ -322,7 +322,7 @@ void build_decision_tree() {
     }
     node_cnt++;
     root = new Node;
-    cerr << "Initial entropy: " << h << endl;
+    // cerr << "Initial entropy: " << h << endl;
     build_decision_tree(train_data, rem_attrs, root, h, plu);
 }
 
@@ -354,8 +354,11 @@ int main() {
     srand(time(nullptr));
 
     int num = 0, den = 0;
+    int sum_nodes = 0, sum_leaves = 0;
 
     vector<double> res(EXP_CNT);
+
+    // cout << fixed << setprecision(2);
     
     for (int i = 1; i <= EXP_CNT; i++) {
         random_shuffle(original_dataset.begin(), original_dataset.end());
@@ -381,13 +384,14 @@ int main() {
             }
         }
 
-        cout << train_data.size() << " " << test_data.size() << endl;
+        // cout << train_data.size() << " " << test_data.size() << endl;
 
         node_cnt = leaf_cnt = 0;
 
         build_decision_tree();
 
-        cout << node_cnt << " " << leaf_cnt << endl;
+        sum_nodes += node_cnt;
+        sum_leaves += leaf_cnt;;
 
         // print_decision_tree(root);
 
@@ -403,14 +407,14 @@ int main() {
 
         res[i-1] = (cnt / (double)(test_data.size()));
 
-        cout << "Accuracy for experiment no. " << i << ": " << res[i-1] << endl;
+        cout << "Accuracy for experiment no. " << i << ": " << res[i-1]*100.0 << "%" << endl;
 
         delete root;
     }
 
     double mean = (num / (double)(den));
 
-    cout << "Mean accuracy: " << mean << endl;
+    cout << "Mean accuracy: " << mean*100 << "%" << endl;
 
     // calculate std deviation
     double sum = 0.0;
@@ -418,7 +422,9 @@ int main() {
         sum += (mean - res[i]) * (mean - res[i]);
     }
     double deviation = sqrt(sum / EXP_CNT);
-    cout << "Standard Deviation: " << deviation << endl;
+    cout << "Standard Deviation: " << deviation*100 << "%" << endl;
+
+    cout << "Averaage no. of nodes in decision tree is " << sum_nodes/EXP_CNT << ", where no. of leaf nodes is " << sum_leaves / EXP_CNT << endl;
 
     return 0;
 }
