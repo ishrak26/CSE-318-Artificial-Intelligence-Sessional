@@ -1,21 +1,15 @@
 #include <bits/stdc++.h>
-// ordered_set
-#include <ext/pb_ds/assoc_container.hpp>
-#include <ext/pb_ds/tree_policy.hpp>
 
 #define EXP_CNT 20
-#define TEST_SZ 50
+#define TEST_SZ 20
 
 using namespace std;
-using namespace __gnu_pbds;
-
-template<class T> using ordered_set =tree<T, null_type, less<T>, rb_tree_tag,tree_order_statistics_node_update>;
 
 const string FILEPATH = "./car evaluation dataset/car.data";
 
 const double EPS = 1e-8;
 
-ordered_set<map<string, string>> original_dataset, train_data, test_data;
+vector<map<string, string>> original_dataset, train_data, test_data;
 vector<string> attrs;
 
 map<string, set<string>> attr_vals;
@@ -62,7 +56,7 @@ void input_dataset(string filepath) {
 
         map<string, string> mp;
         parse_input(tokens, mp);
-        original_dataset.insert(mp);
+        original_dataset.push_back(mp);
     }
 }
 
@@ -96,10 +90,11 @@ int leaf_cnt;
 /*
     ds: dataset under consideration
     rem_attrs: set of remaining attributes to be applied now
-    par: parent node
     cur: current node under consideration
+    h_par: entropy of parent
+    par_plu: plurality of parent
 */
-void build_decision_tree(ordered_set<map<string, string>> ds, set<string> rem_attrs, Node *cur, double h_par, string par_plu) {
+void build_decision_tree(vector<map<string, string>> ds, set<string> rem_attrs, Node *cur, double h_par, string par_plu) {
     // find next_attribute among remaining attributes applicable for ds
 
     double info_gain = -1.0;
@@ -110,7 +105,7 @@ void build_decision_tree(ordered_set<map<string, string>> ds, set<string> rem_at
     */
     map<string, map<string, double>> new_hpar; // h_par to be passed after an attribute is selected
     /*
-        say, new_hpar["buying"]["vhigh"] = 0.46 means entropy for the branch "vhigh" for the attribute "buying"
+        say, new_hpar["buying"]["vhigh"] = 0.46 means parent entropy for the branch "vhigh" for the attribute "buying"
         is 0.46
     */
     
@@ -124,8 +119,8 @@ void build_decision_tree(ordered_set<map<string, string>> ds, set<string> rem_at
         */
 
         // iterate over the given dataset to find count of results
-        for (ordered_set<map<string, string>>::iterator it2 = ds.begin(); it2 != ds.end(); it2++) {
-            map<string, string> mp = *it2; // mp is a data, as given in dataset ds
+        for (map<string, string> mp : ds) {
+            // mp is a data, as given in dataset ds
             string val = mp[attr];
             cnts[val][mp["value"]]++;
         }
@@ -276,16 +271,15 @@ void build_decision_tree(ordered_set<map<string, string>> ds, set<string> rem_at
     }
 
     // create new branches from here
-    map<string, ordered_set<map<string, string>>> new_ds;
+    map<string, vector<map<string, string>>> new_ds;
     /*
         say, sel_attr is "buying"
         new_ds["vhigh"] will have the subset of ds, whose "buying" value is "vhigh"
     */
 
-    for (ordered_set<map<string, string>>::iterator it = ds.begin(); it != ds.end(); it++) {
-        map<string, string> mp = *it;
+    for (map<string, string> mp : ds) {
         string val = mp[sel_attr]; // val can be "vhigh" for sel_attr "buying"
-        new_ds[val].insert(mp);
+        new_ds[val].push_back(mp);
     }
 
     // build decision tree for each branch of sel_attr
@@ -305,8 +299,7 @@ void build_decision_tree() {
     
     // calculate frequency of each decision value
     map<string, int> cnt;
-    for (ordered_set<map<string, string>>::iterator it = train_data.begin(); it != train_data.end(); it++) {
-        map<string, string> mp = *it;
+    for (map<string, string> mp : train_data) {
         cnt[mp["value"]]++;
     }
     double h = 0.0;
@@ -321,6 +314,7 @@ void build_decision_tree() {
         double p = ((double)(cnt[*it])) / train_data.size();
         h -= p * log2(p);
     }
+    cout << "plu is " << plu << endl;
     
     set<string> rem_attrs;
     for (int i = 0; i < 6; i++) { 
@@ -364,28 +358,41 @@ int main() {
     vector<double> res(EXP_CNT);
     
     for (int i = 1; i <= EXP_CNT; i++) {
-        train_data = original_dataset;
+        random_shuffle(original_dataset.begin(), original_dataset.end());
+        train_data.clear();
         test_data.clear();
         // prepare test dataset
         int sz = (original_dataset.size() * TEST_SZ) / 100;
-        for (int j = 0; j < sz; j++) {
-            int r = rand() % train_data.size();
-            ordered_set<map<string, string>>::iterator it = train_data.find_by_order(r);
-            test_data.insert(*it);
-            train_data.erase(it);
+        set<int> indices;
+        while (indices.size() < sz) {
+            int r = rand() % original_dataset.size();
+            indices.insert(r);
         }
+        vector<bool> mark(original_dataset.size());
+        for (int idx : indices) {
+            mark[idx] = 1;
+        }
+        for (int i = 0; i < original_dataset.size(); i++) {
+            if (mark[i]) {
+                test_data.push_back(original_dataset[i]);
+            }
+            else {
+                train_data.push_back(original_dataset[i]);
+            }
+        }
+
+        cout << train_data.size() << " " << test_data.size() << endl;
 
         node_cnt = leaf_cnt = 0;
 
         build_decision_tree();
 
-        cerr << node_cnt << " " << leaf_cnt << endl;
+        cout << node_cnt << " " << leaf_cnt << endl;
 
         // print_decision_tree(root);
 
         int cnt = 0;
-        for (ordered_set<map<string, string>>::iterator it = test_data.begin(); it != test_data.end(); it++) {
-            map<string, string> mp = *it;
+        for (map<string, string> mp : test_data) {
             string ret = test_by_decision_tree(mp);
             if (ret == mp["value"]) {
                 cnt++;
