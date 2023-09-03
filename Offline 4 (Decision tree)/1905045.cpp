@@ -353,78 +353,88 @@ int main() {
 
     srand(time(nullptr));
 
-    int num = 0, den = 0;
     int sum_nodes = 0, sum_leaves = 0;
 
     vector<double> res(EXP_CNT);
 
+    ofstream fout;
+    fout.open("1905045_plot.dat", ios::out);
+
     // cout << fixed << setprecision(2);
+
+    for (int test_sz = 5; test_sz <= 90; test_sz += 5) {
+        cout << "For size of training dataset = " << (100-test_sz) << "% of main dataset" << endl;
+        for (int i = 1; i <= EXP_CNT; i++) {
+            random_shuffle(original_dataset.begin(), original_dataset.end());
+            train_data.clear();
+            test_data.clear();
+            // prepare test dataset
+            int sz = (original_dataset.size() * test_sz) / 100;
+            set<int> indices;
+            while (indices.size() < sz) {
+                int r = rand() % original_dataset.size();
+                indices.insert(r);
+            }
+            vector<bool> mark(original_dataset.size());
+            for (int idx : indices) {
+                mark[idx] = 1;
+            }
+            for (int i = 0; i < original_dataset.size(); i++) {
+                if (mark[i]) {
+                    test_data.push_back(original_dataset[i]);
+                }
+                else {
+                    train_data.push_back(original_dataset[i]);
+                }
+            }
+
+            // cout << train_data.size() << " " << test_data.size() << endl;
+
+            node_cnt = leaf_cnt = 0;
+
+            build_decision_tree();
+
+            sum_nodes += node_cnt;
+            sum_leaves += leaf_cnt;;
+
+            // print_decision_tree(root);
+
+            int cnt = 0;
+            for (map<string, string> mp : test_data) {
+                string ret = test_by_decision_tree(mp);
+                if (ret == mp["value"]) {
+                    cnt++;
+                }
+            }
+
+            res[i-1] = (cnt / (double)(test_data.size()));
+
+            cout << "Accuracy for experiment no. " << i << ": " << res[i-1]*100.0 << "%" << endl;
+
+            delete root;
+        }
+
+        double mean_sum = 0;
+        for (double x : res) {
+            mean_sum += x;
+        }
+        double mean = mean_sum / EXP_CNT;
+
+        cout << "Mean accuracy: " << mean*100 << "%" << endl;
+
+        // calculate std deviation
+        double sum = 0.0;
+        for (int i = 0; i < EXP_CNT; i++) {
+            sum += (mean - res[i]) * (mean - res[i]);
+        }
+        double deviation = sqrt(sum / EXP_CNT);
+        cout << "Standard Deviation: " << deviation*100 << "%" << endl;
+
+        cout << "Averaage no. of nodes in decision tree is " << sum_nodes/EXP_CNT << ", where no. of leaf nodes is " << sum_leaves / EXP_CNT << endl;
+        cout << endl; 
+
+        fout << 100-test_sz << " " << mean << endl;  
+    }
     
-    for (int i = 1; i <= EXP_CNT; i++) {
-        random_shuffle(original_dataset.begin(), original_dataset.end());
-        train_data.clear();
-        test_data.clear();
-        // prepare test dataset
-        int sz = (original_dataset.size() * TEST_SZ) / 100;
-        set<int> indices;
-        while (indices.size() < sz) {
-            int r = rand() % original_dataset.size();
-            indices.insert(r);
-        }
-        vector<bool> mark(original_dataset.size());
-        for (int idx : indices) {
-            mark[idx] = 1;
-        }
-        for (int i = 0; i < original_dataset.size(); i++) {
-            if (mark[i]) {
-                test_data.push_back(original_dataset[i]);
-            }
-            else {
-                train_data.push_back(original_dataset[i]);
-            }
-        }
-
-        // cout << train_data.size() << " " << test_data.size() << endl;
-
-        node_cnt = leaf_cnt = 0;
-
-        build_decision_tree();
-
-        sum_nodes += node_cnt;
-        sum_leaves += leaf_cnt;;
-
-        // print_decision_tree(root);
-
-        int cnt = 0;
-        for (map<string, string> mp : test_data) {
-            string ret = test_by_decision_tree(mp);
-            if (ret == mp["value"]) {
-                cnt++;
-            }
-        }
-        num += cnt;
-        den += test_data.size();
-
-        res[i-1] = (cnt / (double)(test_data.size()));
-
-        cout << "Accuracy for experiment no. " << i << ": " << res[i-1]*100.0 << "%" << endl;
-
-        delete root;
-    }
-
-    double mean = (num / (double)(den));
-
-    cout << "Mean accuracy: " << mean*100 << "%" << endl;
-
-    // calculate std deviation
-    double sum = 0.0;
-    for (int i = 0; i < EXP_CNT; i++) {
-        sum += (mean - res[i]) * (mean - res[i]);
-    }
-    double deviation = sqrt(sum / EXP_CNT);
-    cout << "Standard Deviation: " << deviation*100 << "%" << endl;
-
-    cout << "Averaage no. of nodes in decision tree is " << sum_nodes/EXP_CNT << ", where no. of leaf nodes is " << sum_leaves / EXP_CNT << endl;
-
     return 0;
 }
