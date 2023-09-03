@@ -287,7 +287,13 @@ void build_decision_tree() {
     build_decision_tree(train_data, rem_attrs, root, h, plu);
 }
 
-
+string test_by_decision_tree(map<string,string> &mp) {
+    Node *cur = root;
+    while (!cur->isLeaf) {
+        cur = cur->child[mp[cur->attr]];
+    }
+    return cur->decision;
+}
 
 int main() {
     prepare_attr_vals();
@@ -295,6 +301,10 @@ int main() {
     input_dataset(FILEPATH);
 
     srand(1);
+
+    int num = 0, den = 0;
+
+    vector<double> res(EXP_CNT);
     
     for (int i = 1; i <= EXP_CNT; i++) {
         train_data = original_dataset;
@@ -309,7 +319,36 @@ int main() {
         }
 
         build_decision_tree();
+
+        int cnt = 0;
+        for (ordered_set<map<string, string>>::iterator it = test_data.begin(); it != test_data.end(); it++) {
+            map<string, string> mp = *it;
+            string ret = test_by_decision_tree(mp);
+            if (ret == mp["value"]) {
+                cnt++;
+            }
+        }
+        num += cnt;
+        den += test_data.size();
+
+        res[i-1] = (cnt / (double)(test_data.size()));
+
+        cout << "Accuracy for experiment no. " << i << ": " << res[i-1] << endl;
+
+        delete root;
     }
+
+    double mean = (num / (double)(den));
+
+    cout << "Mean accuracy: " << mean << endl;
+
+    // calculate std deviation
+    double sum = 0.0;
+    for (int i = 0; i < EXP_CNT; i++) {
+        sum += (mean - res[i]) * (mean - res[i]);
+    }
+    double deviation = sqrt(sum / EXP_CNT);
+    cout << "Standard Deviation: " << deviation << endl;
 
     return 0;
 }
