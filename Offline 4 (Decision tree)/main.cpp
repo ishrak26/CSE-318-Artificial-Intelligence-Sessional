@@ -4,7 +4,7 @@
 #include <ext/pb_ds/tree_policy.hpp>
 
 #define EXP_CNT 20
-#define TEST_SZ 20
+#define TEST_SZ 50
 
 using namespace std;
 using namespace __gnu_pbds;
@@ -90,6 +90,9 @@ struct Node {
 
 Node *root;
 
+int node_cnt;
+int leaf_cnt;
+
 /*
     ds: dataset under consideration
     rem_attrs: set of remaining attributes to be applied now
@@ -149,6 +152,9 @@ void build_decision_tree(ordered_set<map<string, string>> ds, set<string> rem_at
                 // entropy will be 0 for this branch
                 new_hpar[attr][*it2] = 0.0;
                 plu[attr][*it2] = par_plu;
+
+                node_cnt++;
+                leaf_cnt++;
                 
                 cur->child[*it2] = new Node(cur);
                 
@@ -188,6 +194,7 @@ void build_decision_tree(ordered_set<map<string, string>> ds, set<string> rem_at
         if (flag) {
             // every branch leads to 0 entropy
             // no need to create new node here, rather create a leaf for every branch
+
             cur->attr = attr;
             cur->isLeaf = false;
             for (set<string>::iterator it2 = attr_vals[attr].begin(); it2 != attr_vals[attr].end(); it2++) {
@@ -196,12 +203,43 @@ void build_decision_tree(ordered_set<map<string, string>> ds, set<string> rem_at
                     // node already created
                     continue;
                 }
+
+                node_cnt++;
+                leaf_cnt++;
                 
                 cur->child[*it2] = new Node(cur);
                 
                 cur->child[*it2]->isLeaf = true;
                 cur->child[*it2]->decision = plu[attr][*it2];
             }
+
+            // if decision for every branch is same, make cur a leaf
+            bool flag = true;
+            bool fi = true;
+            string dec;
+            for (set<string>::iterator it2 = attr_vals[attr].begin(); it2 != attr_vals[attr].end(); it2++) {
+                if (fi) {
+                    dec = cur->child[*it2]->decision;
+                    fi = false;
+                }
+                else {
+                    if (cur->child[*it2]->decision != dec) {
+                        flag = false;
+                        break;
+                    }
+                }
+            }
+            if (flag) {
+                // decision for all branches are same
+                for (set<string>::iterator it2 = attr_vals[attr].begin(); it2 != attr_vals[attr].end(); it2++) {
+                    delete cur->child[*it2];
+                    node_cnt--;
+                    leaf_cnt--;
+                }
+                cur->isLeaf = true;
+                cur->decision = dec;
+            }
+
             return;
         }
         else {
@@ -227,6 +265,8 @@ void build_decision_tree(ordered_set<map<string, string>> ds, set<string> rem_at
         
         cur->isLeaf = false;
         for (set<string>::iterator it2 = attr_vals[sel_attr].begin(); it2 != attr_vals[sel_attr].end(); it2++) {
+            node_cnt++;
+            
             cur->child[*it2] = new Node(cur);
                 
             cur->child[*it2]->isLeaf = true;
@@ -251,6 +291,8 @@ void build_decision_tree(ordered_set<map<string, string>> ds, set<string> rem_at
     // build decision tree for each branch of sel_attr
     cur->isLeaf = false;
     for (set<string>::iterator it = attr_vals[sel_attr].begin(); it != attr_vals[sel_attr].end(); it++) {
+        
+        node_cnt++;
         cur->child[*it] = new Node(cur);
         build_decision_tree(new_ds[*it], rem_attrs, cur->child[*it], new_hpar[sel_attr][*it], plu[sel_attr][*it]);
     }
@@ -275,6 +317,7 @@ void build_decision_tree() {
             max_cnt = cnt[*it];
             plu = *it;
         }
+        cerr << *it << " " << cnt[*it] << endl;
         double p = ((double)(cnt[*it])) / train_data.size();
         h -= p * log2(p);
     }
@@ -283,7 +326,9 @@ void build_decision_tree() {
     for (int i = 0; i < 6; i++) { 
         rem_attrs.insert(attrs[i]);
     }
+    node_cnt++;
     root = new Node;
+    cerr << "Initial entropy: " << h << endl;
     build_decision_tree(train_data, rem_attrs, root, h, plu);
 }
 
@@ -295,12 +340,24 @@ string test_by_decision_tree(map<string,string> &mp) {
     return cur->decision;
 }
 
+void print_decision_tree(Node *cur) {
+    if (cur->isLeaf) {
+        cout << cur->decision << endl;
+        return;
+    }
+    cout << cur->attr << endl;
+    for (set<string>::iterator it = attr_vals[cur->attr].begin(); it != attr_vals[cur->attr].end(); it++) {
+        cout << "taking the branch " << *it << " for attr " << cur->attr << endl;
+        print_decision_tree(cur->child[*it]);
+    }
+}
+
 int main() {
     prepare_attr_vals();
     
     input_dataset(FILEPATH);
 
-    srand(1);
+    srand(time(nullptr));
 
     int num = 0, den = 0;
 
@@ -318,7 +375,13 @@ int main() {
             train_data.erase(it);
         }
 
+        node_cnt = leaf_cnt = 0;
+
         build_decision_tree();
+
+        cerr << node_cnt << " " << leaf_cnt << endl;
+
+        // print_decision_tree(root);
 
         int cnt = 0;
         for (ordered_set<map<string, string>>::iterator it = test_data.begin(); it != test_data.end(); it++) {
